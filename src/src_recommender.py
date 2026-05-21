@@ -1,6 +1,13 @@
-def recommend_scenarios(predicted_activity, hour, temp_mean=None):
-    recs = []
+from .logger import get_logger
 
+logger = get_logger("recommender")
+
+def recommend_scenarios(predicted_activity, hour, temp_mean=None):
+    logger.info(
+        f"Generating recommendations for activity={predicted_activity}, hour={hour}, temp_mean={temp_mean}"
+    )
+
+    recs = []
     activity = str(predicted_activity).lower() if predicted_activity is not None else ""
 
     if "sleep" in activity:
@@ -37,13 +44,14 @@ def recommend_scenarios(predicted_activity, hour, temp_mean=None):
             elif temp_mean <= 19:
                 recs.append("Temperature is low: suggest heating scenario")
         except Exception:
-            pass
+            logger.warning("Could not evaluate temperature-based recommendation")
 
-    # deduplicate while preserving order
     seen = set()
     result = []
     for r in recs:
         if r not in seen:
             seen.add(r)
             result.append(r)
+
+    logger.info(f"Generated {len(result[:5])} recommendations")
     return result[:5]
