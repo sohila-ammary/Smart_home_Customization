@@ -1,8 +1,8 @@
 import re
 import pandas as pd
 from pathlib import Path
-from .src_utils import sensor_prefix, normalize_value
-from .src_logger import get_logger
+from .utils import sensor_prefix, normalize_value
+from .logger import get_logger
 
 logger = get_logger("parser")
 
