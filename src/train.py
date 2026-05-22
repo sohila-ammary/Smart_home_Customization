@@ -10,9 +10,11 @@ from .config import (
     SEQUENCE_LENGTH, LSTM_BATCH_SIZE, LSTM_EPOCHS,
     LSTM_HIDDEN_SIZE, LSTM_NUM_LAYERS, LSTM_LEARNING_RATE
 )
+
 from .utils import ensure_dir
 from .parser import parse_multiple
 from .feature_engineering import build_window_features
+from .habit_profile import build_habit_profiles, save_habit_profiles
 from .routine_mining import mine_basic_routines, activity_hour_profile
 from .logger import get_logger
 from .plots import save_confusion_matrix, save_top_class_barplot
