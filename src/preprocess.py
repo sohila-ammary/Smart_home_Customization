@@ -32,12 +32,15 @@ def build_activity_intervals(df: pd.DataFrame):
         elif phase == "end":
             end_count += 1
             if key in active_map:
-                intervals.append({
-                    "dataset": row["dataset"],
-                    "activity": row["activity"],
-                    "start": active_map[key],
-                    "end": row["timestamp"]
-                })
+                start_ts = active_map[key]
+                end_ts = row["timestamp"]
+                if end_ts >= start_ts:
+                    intervals.append({
+                        "dataset": row["dataset"],
+                        "activity": row["activity"],
+                        "start": start_ts,
+                        "end": end_ts
+                    })
                 del active_map[key]
         else:
             point_count += 1
@@ -62,23 +65,33 @@ def build_activity_intervals(df: pd.DataFrame):
 
     return intervals_df
 
-def assign_window_label(window_start, window_end, intervals_df, dataset_name):
+def get_window_label_info(window_start, window_end, intervals_df, dataset_name):
     if intervals_df.empty:
-        return None
+        return None, 0.0, {}
 
     sub = intervals_df[intervals_df["dataset"] == dataset_name]
     overlaps = sub[(sub["start"] <= window_end) & (sub["end"] >= window_start)]
 
     if overlaps.empty:
-        return None
+        return None, 0.0, {}
 
-    overlaps = overlaps.copy()
-    overlaps["overlap_seconds"] = overlaps.apply(
-        lambda r: (min(window_end, r["end"]) - max(window_start, r["start"])).total_seconds(),
-        axis=1
-    )
-    overlaps = overlaps.sort_values("overlap_seconds", ascending=False)
-    return overlaps.iloc[0]["activity"]
+    overlap_map = {}
+    for _, r in overlaps.iterrows():
+        overlap_seconds = (
+            min(window_end, r["end"]) - max(window_start, r["start"])
+        ).total_seconds()
+        if overlap_seconds > 0:
+            overlap_map[r["activity"]] = overlap_map.get(r["activity"], 0.0) + overlap_seconds
+
+    if not overlap_map:
+        return None, 0.0, {}
+
+    best_label = max(overlap_map, key=overlap_map.get)
+    best_overlap = overlap_map[best_label]
+    window_seconds = max((window_end - window_start).total_seconds(), 1.0)
+    best_fraction = best_overlap / window_seconds
+
+    return best_label, best_fraction, overlap_map
 
 def time_based_split(df, test_ratio=0.15, val_ratio=0.15):
     logger.info(
