@@ -19,65 +19,77 @@ def generate_hybrid_recommendations(
     recs = []
 
     for activity, conf in zip(predicted_activities, confidence_scores):
-        act = str(activity).lower()
+        act = str(activity)
 
-        if "sleep" in act:
+        if act == "Sleep":
             recs.append({
                 "scenario": "sleep_scene",
                 "score": float(conf) + (0.15 if hour in profile.get("sleep_hours", []) else 0.0),
-                "reason": f"Predicted sleep-related activity '{activity}' with confidence {conf:.2f}",
+                "reason": f"Predicted Sleep with confidence {conf:.2f}",
                 "actions": [
                     "Turn off unused lights",
-                    "Set thermostat to night comfort mode",
-                    "Reduce noise / mute non-essential devices"
+                    "Set thermostat to night mode",
+                    "Reduce noise / mute non-essential alerts"
                 ]
             })
 
-        if any(k in act for k in ["breakfast", "lunch", "dinner", "eat", "meal", "cook"]):
+        elif act == "Meal":
             recs.append({
                 "scenario": "meal_scene",
                 "score": float(conf) + (0.15 if hour in profile.get("meal_hours", []) else 0.0),
-                "reason": f"Predicted meal-related activity '{activity}' with confidence {conf:.2f}",
+                "reason": f"Predicted Meal-related activity with confidence {conf:.2f}",
                 "actions": [
                     "Increase kitchen/dining lighting",
-                    "Turn on ventilation if available",
-                    "Prepare preferred appliance shortcuts"
+                    "Start ventilation if available",
+                    "Prepare common appliance shortcuts"
                 ]
             })
 
-        if any(k in act for k in ["leave_home", "enter_home"]):
+        elif act == "Away":
             recs.append({
                 "scenario": "away_scene",
                 "score": float(conf) + (0.10 if hour in profile.get("away_hours", []) else 0.0),
-                "reason": f"Predicted transition activity '{activity}' with confidence {conf:.2f}",
+                "reason": f"Predicted Away/transition activity with confidence {conf:.2f}",
                 "actions": [
-                    "Enable away/home mode",
-                    "Switch off unused devices",
-                    "Adjust HVAC for efficiency"
+                    "Turn off unused devices",
+                    "Adjust HVAC for efficiency",
+                    "Enable away/home automation"
                 ]
             })
 
-        if any(k in act for k in ["work", "desk", "read"]):
+        elif act == "Work":
             recs.append({
                 "scenario": "focus_scene",
                 "score": float(conf) + (0.10 if hour in profile.get("work_hours", []) else 0.0),
-                "reason": f"Predicted focus-related activity '{activity}' with confidence {conf:.2f}",
+                "reason": f"Predicted Work/focus activity with confidence {conf:.2f}",
                 "actions": [
                     "Set focused lighting",
                     "Reduce distractions",
-                    "Optimize workspace temperature"
+                    "Optimize workspace comfort"
                 ]
             })
 
-        if any(k in act for k in ["relax", "watch_tv"]):
+        elif act == "Relax":
             recs.append({
                 "scenario": "relax_scene",
                 "score": float(conf) + (0.10 if hour in profile.get("relax_hours", []) else 0.0),
-                "reason": f"Predicted relax-related activity '{activity}' with confidence {conf:.2f}",
+                "reason": f"Predicted Relax activity with confidence {conf:.2f}",
                 "actions": [
                     "Dim lights",
-                    "Enable entertainment comfort mode",
-                    "Set comfortable evening temperature"
+                    "Enable evening comfort mode",
+                    "Prepare entertainment environment"
+                ]
+            })
+
+        elif act == "Bathroom":
+            recs.append({
+                "scenario": "bathroom_comfort",
+                "score": float(conf),
+                "reason": f"Predicted Bathroom-related activity with confidence {conf:.2f}",
+                "actions": [
+                    "Enable bathroom ventilation",
+                    "Adjust bathroom light brightness",
+                    "Maintain comfort temperature"
                 ]
             })
 
@@ -106,7 +118,6 @@ def generate_hybrid_recommendations(
         except Exception:
             logger.warning("Temperature handling failed in recommender")
 
-    # Deduplicate by scenario, keep highest score
     best = {}
     for r in recs:
         name = r["scenario"]
