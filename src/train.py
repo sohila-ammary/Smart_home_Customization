@@ -162,6 +162,8 @@ def train_pipeline():
     profile = activity_hour_profile(features)
     if not profile.empty:
         profile.to_csv(OUTPUT_DIR / "activity_hour_profile.csv", index=False)
+        habit_profiles = build_habit_profiles(profile)
+        save_habit_profiles(habit_profiles, OUTPUT_DIR)
 
     logger.info("Step 5/10: Preparing labeled dataset")
     labeled_df = prepare_labeled_table(features)
