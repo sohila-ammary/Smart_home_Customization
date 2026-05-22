@@ -31,14 +31,14 @@ def predict_top_k(model, X_row, label_encoder=None, top_k=3):
 
     return labels.tolist(), top_probs.tolist()
 
-def run_inference(sample_features: pd.DataFrame, dataset_name: str, model_name="boosting"):
+def run_inference(sample_features: pd.DataFrame, dataset_name: str, model_name="boost"):
     logger.info(f"Running inference for dataset={dataset_name} using model={model_name}")
 
-    if model_name == "boosting":
-        model = joblib.load(OUTPUT_DIR / "boosting.pkl")
-        label_encoder = joblib.load(OUTPUT_DIR / "label_encoder.pkl")
+    if model_name == "boost":
+        model = joblib.load(OUTPUT_DIR / f"boost_{dataset_name}.pkl")
+        label_encoder = joblib.load(OUTPUT_DIR / f"label_encoder_{dataset_name}.pkl")
     else:
-        model = joblib.load(OUTPUT_DIR / "random_forest.pkl")
+        model = joblib.load(OUTPUT_DIR / f"rf_{dataset_name}.pkl")
         label_encoder = None
 
     habit_profile = load_habit_profile(dataset_name)
@@ -50,18 +50,14 @@ def run_inference(sample_features: pd.DataFrame, dataset_name: str, model_name="
 
     labels, probs = predict_top_k(model, X, label_encoder=label_encoder, top_k=3)
 
-    temp_mean = None
-    hour = None
-    if "temp_mean" in sample_features.columns:
-        temp_mean = float(sample_features.iloc[0]["temp_mean"])
-    if "hour" in sample_features.columns:
-        hour = int(sample_features.iloc[0]["hour"])
+    temp_mean = float(sample_features.iloc[0]["temp_mean"]) if "temp_mean" in sample_features.columns else None
+    hour = int(sample_features.iloc[0]["hour"]) if "hour" in sample_features.columns else 12
 
     recs = generate_hybrid_recommendations(
         dataset_name=dataset_name,
         predicted_activities=labels,
         confidence_scores=probs,
-        hour=hour if hour is not None else 12,
+        hour=hour,
         temp_mean=temp_mean,
         habit_profiles=habit_profiles,
         top_k=5
