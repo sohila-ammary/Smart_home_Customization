@@ -1,0 +1,2 @@
+WINDOW_SIZE_OPTIONS = ["3min", "5min", "10min"]
+MIN_LABEL_FRACTION_OPTIONS = [0.5, 0.6, 0.7]
