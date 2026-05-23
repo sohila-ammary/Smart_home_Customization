@@ -1,0 +1,18 @@
+Best model: catboost
+Validation Accuracy: 0.9572569281352747
+Validation Macro F1: 0.8849959602290992
+Test Accuracy: 0.9441314553990611
+Test Macro F1: 0.8594071779833334
+Test Weighted F1: 0.944137902697351
+Top-3 Accuracy: 1.0
+
+              precision    recall  f1-score   support
+
+        Away       0.60      0.55      0.57        11
+        Meal       0.95      0.94      0.95      1102
+       Relax       0.91      0.93      0.92       694
+      Social       1.00      1.00      1.00       323
+
+    accuracy                           0.94      2130
+   macro avg       0.87      0.85      0.86      2130
+weighted avg       0.94      0.94      0.94      2130
