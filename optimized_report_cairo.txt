@@ -1,0 +1,21 @@
+Best model: catboost
+Validation Accuracy: 0.795798319327731
+Validation Macro F1: 0.6366867581155754
+Test Accuracy: 0.8411764705882353
+Test Macro F1: 0.5791853303196373
+Test Weighted F1: 0.8404584860750214
+Top-3 Accuracy: 0.9882352941176471
+
+               precision    recall  f1-score   support
+
+     Bathroom       0.67      0.15      0.25        13
+       Chores       0.20      0.50      0.29         4
+         Meal       0.98      0.98      0.98       548
+NightBehavior       0.75      0.21      0.33        28
+        Sleep       0.55      0.99      0.71       114
+         Wake       0.57      0.98      0.72        94
+         Work       0.97      0.64      0.77       389
+
+     accuracy                           0.84      1190
+    macro avg       0.67      0.64      0.58      1190
+ weighted avg       0.89      0.84      0.84      1190
