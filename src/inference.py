@@ -3,7 +3,8 @@ import pandas as pd
 import json
 from .config import OUTPUT_DIR
 from .logger import get_logger
-from .hybrid_recommender import generate_hybrid_recommendations
+from .recommendation_fusion import fuse_topk_predictions_with_habits
+from .decision_engine import build_decision_payload
 
 logger = get_logger("inference")
 
@@ -18,7 +19,7 @@ def load_habit_profile(dataset_name):
 def predict_top_k(model, X_row, label_encoder=None, top_k=3):
     if not hasattr(model, "predict_proba"):
         pred = model.predict(X_row)[0]
-        return [pred], [1.0]
+        return [{"activity": pred, "confidence": 1.0}]
 
     probs = model.predict_proba(X_row)[0]
     top_idx = probs.argsort()[::-1][:top_k]
@@ -29,12 +30,19 @@ def predict_top_k(model, X_row, label_encoder=None, top_k=3):
     else:
         labels = model.classes_[top_idx]
 
-    return labels.tolist(), top_probs.tolist()
+    return [
+        {"activity": str(a), "confidence": float(p)}
+        for a, p in zip(labels, top_probs)
+    ]
 
-def run_inference(sample_features: pd.DataFrame, dataset_name: str, model_name="boost"):
-    logger.info(f"Running inference for dataset={dataset_name} using model={model_name}")
+def run_inference(sample_features: pd.DataFrame, dataset_name: str, model_name="best"):
+    logger.info(f"Running V4 inference for dataset={dataset_name} using model={model_name}")
 
-    if model_name == "boost":
+    if model_name == "best":
+        model = joblib.load(OUTPUT_DIR / f"best_model_{dataset_name}.pkl")
+        label_encoder_path = OUTPUT_DIR / f"best_label_encoder_{dataset_name}.pkl"
+        label_encoder = joblib.load(label_encoder_path) if label_encoder_path.exists() else None
+    elif model_name == "boost":
         model = joblib.load(OUTPUT_DIR / f"boost_{dataset_name}.pkl")
         label_encoder = joblib.load(OUTPUT_DIR / f"label_encoder_{dataset_name}.pkl")
     else:
@@ -48,29 +56,33 @@ def run_inference(sample_features: pd.DataFrame, dataset_name: str, model_name="
     for col in X.columns:
         X[col] = pd.to_numeric(X[col], errors="coerce").fillna(0)
 
-    labels, probs = predict_top_k(model, X, label_encoder=label_encoder, top_k=3)
+    top_predictions = predict_top_k(model, X, label_encoder=label_encoder, top_k=3)
 
     temp_mean = float(sample_features.iloc[0]["temp_mean"]) if "temp_mean" in sample_features.columns else None
     hour = int(sample_features.iloc[0]["hour"]) if "hour" in sample_features.columns else 12
 
-    recs = generate_hybrid_recommendations(
+    recommendations = fuse_topk_predictions_with_habits(
         dataset_name=dataset_name,
-        predicted_activities=labels,
-        confidence_scores=probs,
+        top_predictions=top_predictions,
         hour=hour,
         temp_mean=temp_mean,
-        habit_profiles=habit_profiles,
-        top_k=5
+        habit_profiles=habit_profiles
+    )
+
+    decision = build_decision_payload(
+        dataset_name=dataset_name,
+        top_predictions=top_predictions,
+        recommendations=recommendations,
+        hour=hour,
+        habit_profiles=habit_profiles
     )
 
     result = {
         "dataset": dataset_name,
-        "top_predictions": [
-            {"activity": a, "confidence": float(p)}
-            for a, p in zip(labels, probs)
-        ],
-        "recommendations": recs
+        "hour": hour,
+        "temp_mean": temp_mean,
+        **decision
     }
 
-    logger.info(f"Inference complete for dataset={dataset_name}")
+    logger.info(f"V4 inference complete for dataset={dataset_name}")
     return result
