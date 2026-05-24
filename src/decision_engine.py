@@ -5,6 +5,13 @@ logger = get_logger("decision_engine")
 HIGH_CONFIDENCE = 0.80
 MEDIUM_CONFIDENCE = 0.50
 
+AUTO_SCENARIOS = {
+    "sleep_scene",
+    "away_scene",
+    "heating_adjustment",
+    "cooling_adjustment",
+}
+
 def classify_confidence(top_predictions):
     if not top_predictions:
         return "low"
@@ -29,10 +36,12 @@ def decide_trigger_mode(top_predictions, recommendations):
 
     conf_level = classify_confidence(top_predictions)
     top_conf = float(top_predictions[0]["confidence"])
+    top_scenario = recommendations[0]["scenario"]
+    top_score = float(recommendations[0]["score"])
 
-    if conf_level == "high" and recommendations[0]["score"] >= 0.85:
+    if conf_level == "high" and top_scenario in AUTO_SCENARIOS and top_score >= 0.80:
         return "auto"
-    elif conf_level in {"high", "medium"}:
+    elif conf_level in {"high", "medium"} and top_score >= 0.15:
         return "suggest"
     return "none"
 
