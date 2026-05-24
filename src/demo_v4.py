@@ -9,7 +9,7 @@ def main():
     logger.info("Loading V4 feature file")
     df = pd.read_csv(OUTPUT_DIR / "window_features_v31_coarse.csv")
 
-    for dataset_name in ["aruba", "cairo", "milan", "tulum1", "tulum2"]:
+    for dataset_name in ["aruba", "cairo", "milan", "tulum1"]:
         sample = df[(df["dataset"] == dataset_name) & (df["label"].notna())].head(1).copy()
         if sample.empty:
             continue
