@@ -2,6 +2,8 @@ from .logger import get_logger
 
 logger = get_logger("recommendation_fusion")
 
+MIN_RECOMMENDATION_SCORE = 0.08
+
 def fuse_topk_predictions_with_habits(
     dataset_name,
     top_predictions,
@@ -18,12 +20,17 @@ def fuse_topk_predictions_with_habits(
         activity = item["activity"]
         conf = float(item["confidence"])
 
+        if conf < 0.02:
+            continue
+
         if activity == "Sleep":
             score = conf + (0.10 if hour in profile.get("sleep_hours", []) else 0.0)
             recs.append({
                 "scenario": "sleep_scene",
                 "score": score,
-                "reason": f"Sleep predicted with confidence {conf:.2f}, hour={hour} aligns with sleep habit",
+                "reason": f"Sleep predicted with confidence {conf:.2f}" + (
+                    ", and this hour matches usual sleep habit" if hour in profile.get("sleep_hours", []) else ""
+                ),
                 "actions": [
                     "Turn off unused lights",
                     "Set thermostat to night mode",
@@ -36,7 +43,9 @@ def fuse_topk_predictions_with_habits(
             recs.append({
                 "scenario": "meal_scene",
                 "score": score,
-                "reason": f"Meal predicted with confidence {conf:.2f}, hour={hour} aligns with meal habit",
+                "reason": f"Meal predicted with confidence {conf:.2f}" + (
+                    ", and this hour matches usual meal habit" if hour in profile.get("meal_hours", []) else ""
+                ),
                 "actions": [
                     "Increase kitchen/dining lighting",
                     "Start ventilation if available",
@@ -96,6 +105,32 @@ def fuse_topk_predictions_with_habits(
                 ]
             })
 
+        elif activity == "NightBehavior":
+            score = conf
+            recs.append({
+                "scenario": "night_safety_scene",
+                "score": score,
+                "reason": f"Night behavior predicted with confidence {conf:.2f}",
+                "actions": [
+                    "Enable low-level path lighting",
+                    "Keep temperature comfortable",
+                    "Avoid loud notifications"
+                ]
+            })
+
+        elif activity == "Wake":
+            score = conf
+            recs.append({
+                "scenario": "wake_scene",
+                "score": score,
+                "reason": f"Wake activity predicted with confidence {conf:.2f}",
+                "actions": [
+                    "Increase light gradually",
+                    "Adjust morning temperature",
+                    "Prepare morning device profile"
+                ]
+            })
+
     if temp_mean is not None:
         if temp_mean >= 25:
             recs.append({
@@ -120,6 +155,8 @@ def fuse_topk_predictions_with_habits(
 
     best = {}
     for r in recs:
+        if r["score"] < MIN_RECOMMENDATION_SCORE:
+            continue
         name = r["scenario"]
         if name not in best or r["score"] > best[name]["score"]:
             best[name] = r
